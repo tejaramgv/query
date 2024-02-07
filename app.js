@@ -22,31 +22,37 @@ const init = async () => {
 init()
 app.post('/todos/', async (req, res) => {
   const details = req.body
-  const {todo, priority, status} = details
+  const {id, todo, priority, status} = details
   console.log(todo, priority, status)
 
-  const query = `INSERT INTO todo (todo, priority, status) VALUES ("${todo}","${priority}","${status}")`
+  const query = `INSERT INTO todo (id,todo, priority, status) VALUES (${id},"${todo}","${priority}","${status}")`
 
   await db.run(query)
   res.send('Todo Successfully Added')
 })
 
 app.get('/todos/', async (req, res) => {
-  const details = req.query
-  const {status, priority, search_q} = details
+  const {status, priority, search_q} = req.query
   let query1 = `select * from todo where 1=1`
-  if (status) {
-    query1 += ` and status="${status}"`
+
+  switch (true) {
+    case Boolean(status):
+      query1 += ` and status="${status}"`
+      break
+    case Boolean(priority):
+      query1 += ` and priority="${priority}"`
+      break
+    case Boolean(search_q):
+      query1 += ` and todo like "%${search_q}%"`
+      break
+    default:
+      // Handle other cases or add additional logic if needed
+      break
   }
-  if (priority) {
-    query1 += ` and priority="${priority}"`
-  }
-  if (search_q) {
-    query1 += ` and todo like "%${search_q}%"`
-  }
+
   console.log(query1)
-  const q = await db.all(query1)
-  res.send(q)
+  const result = await db.all(query1)
+  res.send(result)
 })
 
 app.get(`/todos/:todoId/`, async (req, res) => {
@@ -57,7 +63,7 @@ app.get(`/todos/:todoId/`, async (req, res) => {
 })
 
 app.put(`/todos/:todoId/`, async (req, res) => {
-  const {status, priority, todo} = req.query
+  const {status, priority, todo} = req.body
   const {todoId} = req.params
   let query3 = null
   if (status) {
